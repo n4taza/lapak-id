@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes"/>
+<title>Koleksi ID | lapakID</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f9fafb;--bg2:#f2f4f7;--card:#ffffff;--border:#e4e7ec;--text:#101828;--muted:#667085;--muted2:#475467;--purple:#465fff;--success:#12b76a;--danger:#f04438;--low:#6b7280;--medium:#3b82f6;--high:#f97316;--legend:#eab308;--font:'Outfit',sans-serif;--mono:'JetBrains Mono',monospace;}
+body.dark-mode{--bg:#000;--bg2:#0a0a0a;--card:#111;--border:#222;--text:#fff;--muted:#888;--muted2:#aaa;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);transition:background .3s;min-height:100vh;display:flex;flex-direction:column}
+.app-wrapper{display:flex;flex-direction:column;min-height:100vh}
+nav{position:sticky;top:0;z-index:200;height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:rgba(255,255,255,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+@media(min-width:768px){nav{padding:0 40px}}
+body.dark-mode nav{background:rgba(0,0,0,.96)}
+.nav-logo{display:flex;align-items:center;gap:8px;font-size:.9rem;font-weight:800;color:var(--text);text-decoration:none}
+.nav-logo-icon{width:28px;height:28px;border-radius:8px;overflow:hidden}
+.nav-logo-icon img{width:100%;height:100%;object-fit:cover}
+.nav-right{display:flex;align-items:center;gap:10px}
+.saldo-card{display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,var(--purple),#7c8eff);border-radius:99px;padding:5px 14px;cursor:pointer}
+.saldo-value{font-size:.85rem;font-weight:800;color:#fff}
+.cart-btn{display:flex;align-items:center;gap:5px;background:var(--bg2);border:1px solid var(--border);padding:5px 12px;border-radius:99px;text-decoration:none;color:var(--text);font-size:.7rem}
+.cart-badge{background:var(--purple);color:#fff;border-radius:40px;padding:1px 6px;font-size:.55rem}
+.dropdown{position:relative}
+.dropdown-trigger{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);padding:4px 12px 4px 8px;border-radius:99px;cursor:pointer}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700}
+.user-name{font-size:.7rem;font-weight:600;color:var(--text)}
+.dropdown-arrow{font-size:.6rem;transition:transform .2s}
+.dropdown.active .dropdown-arrow{transform:rotate(180deg)}
+.dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;background:var(--card);border:1px solid var(--border);border-radius:16px;min-width:180px;overflow:hidden;opacity:0;visibility:hidden;transform:translateY(-8px);transition:all .2s;z-index:300}
+.dropdown.active .dropdown-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.dropdown-item{display:flex;align-items:center;gap:10px;padding:10px 16px;color:var(--text);font-size:.7rem;text-decoration:none;border-bottom:1px solid var(--border)}
+.dropdown-item:last-child{border-bottom:none}
+.dropdown-item:hover{background:var(--bg2);color:var(--purple)}
+.dropdown-item.logout{color:var(--danger)}
+.main-content{flex:1;max-width:1200px;margin:0 auto;padding:100px 24px 60px;width:100%}
+.page-header{margin-bottom:24px}
+.page-header h1{font-size:1.5rem;font-weight:800}
+.filter-bar{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.filter-btn{background:var(--bg2);border:1px solid var(--border);border-radius:40px;padding:8px 20px;font-size:.7rem;cursor:pointer}
+.filter-btn.active{background:var(--purple);color:#fff;border-color:var(--purple)}
+.search-wrap{margin-bottom:20px}
+.search-wrap input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;color:var(--text);font-family:var(--mono);font-size:.8rem}
+.id-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.id-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;cursor:pointer;transition:all .2s}
+.id-card:hover{border-color:var(--purple);transform:translateY(-2px)}
+.id-card.sold{opacity:0.6;cursor:not-allowed}
+.id-card.sold:hover{transform:none}
+.id-uid{font-family:var(--mono);font-size:.9rem;font-weight:700;word-break:break-all}
+.id-tier{display:inline-block;font-size:.6rem;font-weight:700;padding:3px 10px;border-radius:40px;margin-top:8px}
+.tier-low{background:rgba(107,114,128,.1);color:var(--low)}
+.tier-medium{background:rgba(59,130,246,.1);color:var(--medium)}
+.tier-high{background:rgba(249,115,22,.1);color:var(--high)}
+.tier-legend{background:rgba(234,179,8,.1);color:var(--legend)}
+.id-price{font-size:.9rem;font-weight:800;color:var(--purple);margin-top:12px}
+.id-price span{font-size:.6rem;font-weight:400;color:var(--muted)}
+.sold-badge{position:absolute;background:var(--danger);color:#fff;font-size:.6rem;padding:2px 10px;border-radius:40px}
+.empty-state{text-align:center;padding:60px;color:var(--muted)}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--success);color:#fff;padding:10px 20px;border-radius:40px;z-index:9999;font-size:.7rem;animation:fadeOut 2s forwards}
+@keyframes fadeOut{0%{opacity:1}70%{opacity:1}100%{opacity:0;visibility:hidden}}
+footer{border-top:1px solid var(--border);padding:20px 24px;text-align:center;background:var(--card);font-size:.65rem}
+.darkmode-toggle{position:fixed;bottom:20px;right:20px;width:44px;height:44px;border-radius:50%;background:var(--purple);border:none;cursor:pointer}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center}
+.modal.active{display:flex}
+.modal-content{background:var(--card);border-radius:24px;max-width:320px;width:90%;padding:24px;text-align:center}
+.modal-content button{background:var(--purple);color:#fff;border:none;padding:10px 20px;border-radius:40px;margin-top:16px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+<nav>
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-icon"><img src="https://files.catbox.moe/34dics.png"/></div>
+    lapakID
+  </a>
+  <div class="nav-right">
+    <div class="saldo-card" id="saldoCard">
+      <span class="saldo-value" id="saldoAmount">C.0</span>
+    </div>
+    <a href="cart.html" class="cart-btn">
+      🛒 <span class="cart-badge" id="cartBadge">0</span>
+    </a>
+    <div class="dropdown" id="userDropdown">
+      <div class="dropdown-trigger">
+        <div class="user-avatar" id="navAvatar">A</div>
+        <span class="user-name" id="navUsername">User</span>
+        <span class="dropdown-arrow">▼</span>
+      </div>
+      <div class="dropdown-menu">
+        <a href="dashboard.html" class="dropdown-item">🏠 Dashboard</a>
+        <a href="id.html" class="dropdown-item">📦 Koleksi ID</a>
+        <a href="cart.html" class="dropdown-item">🛒 Keranjang</a>
+        <a href="topup.html" class="dropdown-item">💰 Top Up Coins</a>
+        <div class="dropdown-item logout" id="logoutBtn">🚪 Logout</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="main-content">
+  <div class="page-header">
+    <h1>Koleksi ID Premium</h1>
+    <p>Pilih ID favoritmu, klik untuk menambahkan ke keranjang</p>
+  </div>
+
+  <div class="filter-bar">
+    <button class="filter-btn active" data-tier="all">Semua</button>
+    <button class="filter-btn" data-tier="low">Low</button>
+    <button class="filter-btn" data-tier="medium">Medium</button>
+    <button class="filter-btn" data-tier="high">High</button>
+    <button class="filter-btn" data-tier="legend">Legend</button>
+  </div>
+
+  <div class="search-wrap">
+    <input type="text" id="searchInput" placeholder="🔍 Cari ID... contoh: 15660000465"/>
+  </div>
+
+  <div id="idGrid" class="id-grid">
+    <div class="empty-state">Loading...</div>
+  </div>
+</div>
+
+<footer>© 2026 lapakID — Koleksi ID Premium</footer>
+</div>
+
+<button class="darkmode-toggle" id="darkModeToggle">🌙</button>
+
+<!-- Modal Login Required -->
+<div id="loginModal" class="modal">
+  <div class="modal-content">
+    <h3>⚠️ Login Diperlukan</h3>
+    <p>Silakan login terlebih dahulu untuk membeli ID</p>
+    <button onclick="window.location.href='signin.html'">Login Sekarang</button>
+  </div>
+</div>
+
+<script>
+const API_URL = '/api';
+let currentUser = null;
+let allIds = [];
+let currentFilter = 'all';
+let searchQuery = '';
+
+const TIER_NAMES = { low: 'Low', medium: 'Medium', high: 'High', legend: 'Legend' };
+const PRICE_MAP = { low: 125000, medium: 450000, high: 850000, legend: 1350000 };
+
+async function checkAuth() {
+  const token = localStorage.getItem('lapakid_token');
+  if (token) {
+    try {
+      const res = await fetch(`${API_URL}/profile`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        currentUser = data.data;
+        document.getElementById('navAvatar').innerText = currentUser.nama.charAt(0).toUpperCase();
+        document.getElementById('navUsername').innerText = currentUser.uid;
+        document.getElementById('saldoAmount').innerHTML = `C.${(currentUser.coins || 0).toLocaleString()}`;
+      }
+    } catch(e) {}
+  }
+  loadCartCount();
+}
+
+async function loadIds() {
+  try {
+    const res = await fetch(`${API_URL}/ids`);
+    const data = await res.json();
+    if (data.success) {
+      allIds = data.data;
+      renderIds();
+    } else {
+      document.getElementById('idGrid').innerHTML = '<div class="empty-state">Gagal memuat data</div>';
+    }
+  } catch(e) {
+    document.getElementById('idGrid').innerHTML = '<div class="empty-state">Error loading IDs</div>';
+  }
+}
+
+function renderIds() {
+  let filtered = [...allIds];
+  if (currentFilter !== 'all') {
+    filtered = filtered.filter(id => id.tier === currentFilter);
+  }
+  if (searchQuery) {
+    filtered = filtered.filter(id => id.uid.toLowerCase().includes(searchQuery.toLowerCase()));
+  }
+
+  const grid = document.getElementById('idGrid');
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div class="empty-state">Tidak ada ID ditemukan</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(id => `
+    <div class="id-card" data-uid="${id.uid}" data-tier="${id.tier}" data-price="${PRICE_MAP[id.tier]}">
+      <div class="id-uid">${id.uid}</div>
+      <span class="id-tier tier-${id.tier}">${TIER_NAMES[id.tier]}</span>
+      <div class="id-price">Rp${PRICE_MAP[id.tier].toLocaleString()} <span>Coins</span></div>
+    </div>
+  `).join('');
+
+  // Add click handlers
+  document.querySelectorAll('.id-card').forEach(card => {
+    card.addEventListener('click', () => addToCart(card.dataset.uid, card.dataset.tier, parseInt(card.dataset.price)));
+  });
+}
+
+function addToCart(uid, tier, price) {
+  if (!currentUser) {
+    document.getElementById('loginModal').classList.add('active');
+    return;
+  }
+
+  let cart = JSON.parse(localStorage.getItem('lapakid_cart') || '[]');
+  if (cart.find(item => item.id === uid)) {
+    showToast('⚠️ ID sudah ada di keranjang', 'warning');
+    return;
+  }
+
+  cart.push({ id: uid, tier: TIER_NAMES[tier], price: price });
+  localStorage.setItem('lapakid_cart', JSON.stringify(cart));
+  loadCartCount();
+  showToast(`✅ ${uid} ditambahkan ke keranjang`, 'success');
+}
+
+function loadCartCount() {
+  const cart = JSON.parse(localStorage.getItem('lapakid_cart') || '[]');
+  document.getElementById('cartBadge').innerText = cart.length;
+}
+
+function showToast(msg, type) {
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = msg;
+  if (type === 'warning') toast.style.background = '#f79009';
+  if (type === 'error') toast.style.background = '#ef4444';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2000);
+}
+
+function logout() {
+  localStorage.removeItem('lapakid_token');
+  localStorage.removeItem('lapakid_cart');
+  window.location.href = 'index.html';
+}
+
+// Filter handlers
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.tier;
+    renderIds();
+  });
+});
+
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  searchQuery = e.target.value;
+  renderIds();
+});
+
+document.getElementById('saldoCard').onclick = () => window.location.href = 'topup.html';
+document.getElementById('logoutBtn').onclick = logout;
+
+// Close modal on click outside
+document.getElementById('loginModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('loginModal')) {
+    document.getElementById('loginModal').classList.remove('active');
+  }
+});
+
+// Dropdown
+const drop = document.getElementById('userDropdown');
+drop.addEventListener('click', (e) => { e.stopPropagation(); drop.classList.toggle('active'); });
+document.addEventListener('click', () => drop.classList.remove('active'));
+
+// Dark mode
+function initDarkMode() {
+  const btn = document.getElementById('darkModeToggle');
+  let dark = localStorage.getItem('darkMode') === 'true';
+  function apply(d) {
+    if (d) document.body.classList.add('dark-mode');
+    else document.body.classList.remove('dark-mode');
+    btn.textContent = d ? '☀️' : '🌙';
+    localStorage.setItem('darkMode', d);
+  }
+  apply(dark);
+  btn.onclick = () => { dark = !dark; apply(dark); };
+}
+
+checkAuth();
+loadIds();
+initDarkMode();
+</script>
+</body>
+</html>
