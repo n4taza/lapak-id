@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes"/>
+<title>Dashboard | lapakID</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f9fafb;--bg2:#f2f4f7;--card:#ffffff;--border:#e4e7ec;--text:#101828;--muted:#667085;--muted2:#475467;--purple:#465fff;--success:#12b76a;--danger:#f04438;--font:'Outfit',sans-serif;--mono:'JetBrains Mono',monospace;}
+body.dark-mode{--bg:#000;--bg2:#0a0a0a;--card:#111;--border:#222;--text:#fff;--muted:#888;--muted2:#aaa;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);transition:background .3s;min-height:100vh;display:flex;flex-direction:column}
+.app-wrapper{display:flex;flex-direction:column;min-height:100vh}
+nav{position:fixed;top:0;left:0;right:0;z-index:200;height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:rgba(255,255,255,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+@media(min-width:768px){nav{padding:0 40px}}
+body.dark-mode nav{background:rgba(0,0,0,.96)}
+.nav-logo{display:flex;align-items:center;gap:8px;font-size:.9rem;font-weight:800;color:var(--text);text-decoration:none}
+.nav-logo-icon{width:28px;height:28px;border-radius:8px;overflow:hidden}
+.nav-logo-icon img{width:100%;height:100%;object-fit:cover}
+.nav-right{display:flex;align-items:center;gap:10px}
+.saldo-card{display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,var(--purple),#7c8eff);border-radius:99px;padding:5px 14px;cursor:pointer}
+.saldo-value{font-size:.85rem;font-weight:800;color:#fff}
+.cart-btn{display:flex;align-items:center;gap:5px;background:var(--bg2);border:1px solid var(--border);padding:5px 12px;border-radius:99px;text-decoration:none;color:var(--text);font-size:.7rem}
+.cart-badge{background:var(--purple);color:#fff;border-radius:40px;padding:1px 6px;font-size:.55rem}
+.dropdown{position:relative}
+.dropdown-trigger{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);padding:4px 12px 4px 8px;border-radius:99px;cursor:pointer}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700}
+.user-name{font-size:.7rem;font-weight:600;color:var(--text)}
+.dropdown-arrow{font-size:.6rem;transition:transform .2s}
+.dropdown.active .dropdown-arrow{transform:rotate(180deg)}
+.dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;background:var(--card);border:1px solid var(--border);border-radius:16px;min-width:180px;overflow:hidden;opacity:0;visibility:hidden;transform:translateY(-8px);transition:all .2s;z-index:300}
+.dropdown.active .dropdown-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.dropdown-item{display:flex;align-items:center;gap:10px;padding:10px 16px;color:var(--text);font-size:.7rem;text-decoration:none;border-bottom:1px solid var(--border)}
+.dropdown-item:last-child{border-bottom:none}
+.dropdown-item:hover{background:var(--bg2);color:var(--purple)}
+.dropdown-item.logout{color:var(--danger)}
+.main-content{flex:1;max-width:1000px;margin:0 auto;padding:100px 24px 60px;width:100%}
+.welcome-card{background:linear-gradient(135deg,var(--purple),#7c8eff);border-radius:24px;padding:32px;margin-bottom:28px;color:#fff}
+.welcome-card h1{font-size:1.5rem;margin-bottom:8px}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}
+.stat-dash{background:rgba(255,255,255,.15);border-radius:16px;padding:16px}
+.stat-dash .value{font-size:1.2rem;font-weight:800}
+.stat-dash .label{font-size:.6rem;opacity:.8}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px;margin-bottom:24px}
+.card-title{font-size:1rem;font-weight:700;margin-bottom:16px}
+.btn-primary{background:var(--purple);color:#fff;border:none;padding:10px 24px;border-radius:40px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block}
+.button-group{display:flex;gap:12px;flex-wrap:wrap}
+.history-list{display:flex;flex-direction:column;gap:10px}
+.history-item{display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border-radius:12px;padding:12px 16px}
+.history-id{font-family:var(--mono);font-size:.8rem;font-weight:700}
+.history-price{color:var(--success);font-weight:700}
+.history-time{font-size:.6rem;color:var(--muted)}
+.empty-state{text-align:center;padding:40px;color:var(--muted)}
+footer{border-top:1px solid var(--border);padding:20px 24px;text-align:center;background:var(--card);font-size:.65rem}
+.darkmode-toggle{position:fixed;bottom:20px;right:20px;width:44px;height:44px;border-radius:50%;background:var(--purple);border:none;cursor:pointer}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center}
+.modal.active{display:flex}
+.modal-content{background:var(--card);border-radius:24px;max-width:360px;width:90%;padding:24px}
+.modal-header{display:flex;justify-content:space-between;margin-bottom:16px}
+.modal-close{background:none;border:none;font-size:1.2rem;cursor:pointer}
+.profile-field{margin-bottom:16px}
+.profile-field label{font-size:.65rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px}
+.profile-field input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px;color:var(--text)}
+.save-profile{background:var(--purple);color:#fff;border:none;padding:12px 24px;border-radius:40px;font-weight:600;cursor:pointer;width:100%}
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+<nav>
+  <a href="dashboard.html" class="nav-logo">
+    <div class="nav-logo-icon"><img src="https://files.catbox.moe/34dics.png"/></div>
+    lapakID
+  </a>
+  <div class="nav-right">
+    <div class="saldo-card" id="saldoCard">
+      <span class="saldo-value" id="saldoAmount">C.0</span>
+    </div>
+    <a href="cart.html" class="cart-btn">
+      🛒 <span class="cart-badge" id="cartBadge">0</span>
+    </a>
+    <div class="dropdown" id="userDropdown">
+      <div class="dropdown-trigger">
+        <div class="user-avatar" id="navAvatar">A</div>
+        <span class="user-name" id="navUsername">User</span>
+        <span class="dropdown-arrow">▼</span>
+      </div>
+      <div class="dropdown-menu">
+        <a href="dashboard.html" class="dropdown-item">🏠 Dashboard</a>
+        <a href="id.html" class="dropdown-item">📦 Koleksi ID</a>
+        <a href="cart.html" class="dropdown-item">🛒 Keranjang</a>
+        <a href="topup.html" class="dropdown-item">💰 Top Up Coins</a>
+        <div class="dropdown-item" id="profileMenuBtn">✏️ Edit Profil</div>
+        <div class="dropdown-item logout" id="logoutBtn">🚪 Logout</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="main-content">
+  <div class="welcome-card">
+    <h1 id="welcomeName">Selamat datang, User</h1>
+    <p>Kelola pembelian ID premium Anda di sini</p>
+    <div class="stats-row">
+      <div class="stat-dash"><div class="value" id="dashCoins">C.0</div><div class="label">Saldo Coins</div></div>
+      <div class="stat-dash"><div class="value" id="dashOrders">0</div><div class="label">Total Pesanan</div></div>
+      <div class="stat-dash"><div class="value" id="dashSuccess">0</div><div class="label">Berhasil</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Aksi Cepat</div>
+    <div class="button-group">
+      <a href="id.html" class="btn-primary">Jelajahi ID</a>
+      <a href="cart.html" class="btn-primary" style="background:var(--bg2);color:var(--text)">Lihat Keranjang</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Riwayat Pembelian</div>
+    <div id="historyList" class="history-list">
+      <div class="empty-state">Belum ada riwayat pembelian</div>
+    </div>
+  </div>
+
+  <div id="profileSection" style="display:none">
+    <div class="card">
+      <div class="card-title">Edit Profil</div>
+      <div class="profile-field"><label>Nama Lengkap</label><input type="text" id="fullNameInput"/></div>
+      <div class="profile-field"><label>Email</label><input type="email" id="emailInput"/></div>
+      <div class="profile-field"><label>WhatsApp</label><input type="text" id="phoneInput"/></div>
+      <div class="profile-field"><label>Bio</label><input type="text" id="bioInput"/></div>
+      <div class="profile-field"><label>Password Baru</label><input type="password" id="newPasswordInput" placeholder="Kosongkan jika tidak diubah"/></div>
+      <button class="save-profile" id="saveProfileBtn">Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
+
+<footer>© 2026 lapakID — Dashboard User</footer>
+</div>
+
+<button class="darkmode-toggle" id="darkModeToggle">🌙</button>
+
+<script>
+const API_URL = '/api';
+let currentUser = null;
+
+async function checkAuth() {
+  const token = localStorage.getItem('lapakid_token');
+  if (!token) {
+    window.location.href = 'index.html';
+    return;
+  }
+  try {
+    const res = await fetch(`${API_URL}/profile`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentUser = data.data;
+      updateUI();
+      loadHistory();
+      loadCartCount();
+    } else {
+      localStorage.removeItem('lapakid_token');
+      window.location.href = 'index.html';
+    }
+  } catch(e) {
+    window.location.href = 'index.html';
+  }
+}
+
+function updateUI() {
+  document.getElementById('welcomeName').innerHTML = `Selamat datang, ${currentUser.nama}`;
+  document.getElementById('navAvatar').innerText = currentUser.nama.charAt(0).toUpperCase();
+  document.getElementById('navUsername').innerText = currentUser.uid;
+  document.getElementById('saldoAmount').innerHTML = `C.${(currentUser.coins || 0).toLocaleString()}`;
+  document.getElementById('dashCoins').innerHTML = `C.${(currentUser.coins || 0).toLocaleString()}`;
+  document.getElementById('dashOrders').innerText = currentUser.jumlahTransaksi || 0;
+  document.getElementById('dashSuccess').innerText = currentUser.berhasil || 0;
+  
+  document.getElementById('fullNameInput').value = currentUser.nama || '';
+  document.getElementById('emailInput').value = currentUser.email || '';
+  document.getElementById('phoneInput').value = currentUser.phone || '';
+  document.getElementById('bioInput').value = currentUser.bio || '';
+}
+
+async function loadHistory() {
+  const token = localStorage.getItem('lapakid_token');
+  const res = await fetch(`${API_URL}/sold-ids`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  const data = await res.json();
+  const container = document.getElementById('historyList');
+  if (data.success && data.data.length > 0) {
+    container.innerHTML = data.data.map(tx => `
+      <div class="history-item">
+        <div><div class="history-id">${tx.akunId}</div><div class="history-time">${tx.waktu || '-'}</div></div>
+        <div class="history-price">Rp${(tx.amount || 0).toLocaleString()}</div>
+      </div>
+    `).join('');
+  } else {
+    container.innerHTML = '<div class="empty-state">Belum ada riwayat pembelian</div>';
+  }
+}
+
+async function loadCartCount() {
+  const cart = JSON.parse(localStorage.getItem('lapakid_cart') || '[]');
+  document.getElementById('cartBadge').innerText = cart.length;
+}
+
+async function saveProfile() {
+  const token = localStorage.getItem('lapakid_token');
+  const res = await fetch(`${API_URL}/profile`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      nama: document.getElementById('fullNameInput').value,
+      email: document.getElementById('emailInput').value,
+      phone: document.getElementById('phoneInput').value,
+      bio: document.getElementById('bioInput').value,
+      newPassword: document.getElementById('newPasswordInput').value
+    })
+  });
+  const data = await res.json();
+  if (data.success) {
+    currentUser = data.data;
+    updateUI();
+    alert('Profil berhasil diperbarui');
+    document.getElementById('newPasswordInput').value = '';
+  } else {
+    alert('Gagal menyimpan profil');
+  }
+}
+
+function logout() {
+  localStorage.removeItem('lapakid_token');
+  localStorage.removeItem('lapakid_cart');
+  window.location.href = 'index.html';
+}
+
+// Event listeners
+document.getElementById('saveProfileBtn').onclick = saveProfile;
+document.getElementById('profileMenuBtn').onclick = () => {
+  const sec = document.getElementById('profileSection');
+  sec.style.display = sec.style.display === 'none' ? 'block' : 'none';
+  document.getElementById('userDropdown').classList.remove('active');
+};
+document.getElementById('logoutBtn').onclick = logout;
+document.getElementById('saldoCard').onclick = () => window.location.href = 'topup.html';
+
+// Dropdown
+const drop = document.getElementById('userDropdown');
+drop.addEventListener('click', (e) => { e.stopPropagation(); drop.classList.toggle('active'); });
+document.addEventListener('click', () => drop.classList.remove('active'));
+
+// Dark mode
+function initDarkMode() {
+  const btn = document.getElementById('darkModeToggle');
+  let dark = localStorage.getItem('darkMode') === 'true';
+  function apply(d) {
+    if (d) document.body.classList.add('dark-mode');
+    else document.body.classList.remove('dark-mode');
+    btn.textContent = d ? '☀️' : '🌙';
+    localStorage.setItem('darkMode', d);
+  }
+  apply(dark);
+  btn.onclick = () => { dark = !dark; apply(dark); };
+}
+
+checkAuth();
+initDarkMode();
+</script>
+</body>
+</html>
