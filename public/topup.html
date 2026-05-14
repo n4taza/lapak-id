@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes"/>
+<title>Top Up Coins | lapakID</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f9fafb;--bg2:#f2f4f7;--card:#ffffff;--border:#e4e7ec;--text:#101828;--muted:#667085;--muted2:#475467;--purple:#465fff;--success:#12b76a;--warning:#f79009;--font:'Outfit',sans-serif;--mono:'JetBrains Mono',monospace;}
+body.dark-mode{--bg:#000;--bg2:#0a0a0a;--card:#111;--border:#222;--text:#fff;--muted:#888;--muted2:#aaa;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);transition:background .3s;min-height:100vh;display:flex;flex-direction:column}
+.app-wrapper{display:flex;flex-direction:column;min-height:100vh}
+nav{position:sticky;top:0;z-index:200;height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:rgba(255,255,255,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+@media(min-width:768px){nav{padding:0 40px}}
+body.dark-mode nav{background:rgba(0,0,0,.96)}
+.nav-logo{display:flex;align-items:center;gap:8px;font-size:.9rem;font-weight:800;color:var(--text);text-decoration:none}
+.nav-logo-icon{width:28px;height:28px;border-radius:8px;overflow:hidden}
+.nav-logo-icon img{width:100%;height:100%;object-fit:cover}
+.nav-right{display:flex;align-items:center;gap:10px}
+.saldo-card{display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,var(--purple),#7c8eff);border-radius:99px;padding:5px 14px;cursor:pointer}
+.saldo-value{font-size:.85rem;font-weight:800;color:#fff}
+.cart-btn{display:flex;align-items:center;gap:5px;background:var(--bg2);border:1px solid var(--border);padding:5px 12px;border-radius:99px;text-decoration:none;color:var(--text);font-size:.7rem}
+.cart-badge{background:var(--purple);color:#fff;border-radius:40px;padding:1px 6px;font-size:.55rem}
+.dropdown{position:relative}
+.dropdown-trigger{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);padding:4px 12px 4px 8px;border-radius:99px;cursor:pointer}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700}
+.user-name{font-size:.7rem;font-weight:600;color:var(--text)}
+.dropdown-arrow{font-size:.6rem;transition:transform .2s}
+.dropdown.active .dropdown-arrow{transform:rotate(180deg)}
+.dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;background:var(--card);border:1px solid var(--border);border-radius:16px;min-width:180px;overflow:hidden;opacity:0;visibility:hidden;transform:translateY(-8px);transition:all .2s;z-index:300}
+.dropdown.active .dropdown-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.dropdown-item{display:flex;align-items:center;gap:10px;padding:10px 16px;color:var(--text);font-size:.7rem;text-decoration:none;border-bottom:1px solid var(--border)}
+.dropdown-item:last-child{border-bottom:none}
+.dropdown-item:hover{background:var(--bg2);color:var(--purple)}
+.dropdown-item.logout{color:var(--danger)}
+.main-content{flex:1;max-width:1000px;margin:0 auto;padding:100px 24px 60px;width:100%}
+.page-header{margin-bottom:24px}
+.page-header h1{font-size:1.5rem;font-weight:800}
+.topup-hero{background:linear-gradient(135deg,var(--purple),#7c8eff);border-radius:24px;padding:32px;margin-bottom:28px;color:#fff}
+.topup-hero h2{font-size:1.3rem;margin-bottom:8px}
+.topup-hero .saldo{font-size:1.8rem;font-weight:800;margin-top:16px}
+.packages-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:32px}
+.package-card{background:var(--card);border:2px solid var(--border);border-radius:20px;padding:20px;cursor:pointer;transition:all .2s}
+.package-card:hover{border-color:var(--purple);transform:translateY(-2px)}
+.package-card.selected{border-color:var(--purple);background:rgba(70,95,255,.05)}
+.package-coins{font-size:1.4rem;font-weight:800;color:var(--purple)}
+.package-price{font-size:.9rem;color:var(--muted);margin:8px 0}
+.package-bonus{display:inline-block;background:rgba(18,183,106,.1);color:var(--success);border-radius:40px;padding:2px 10px;font-size:.6rem;margin-top:8px}
+.sticky-bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);padding:16px 24px;display:flex;justify-content:space-between;align-items:center;z-index:100}
+.sticky-bar .info .label{font-size:.6rem;color:var(--muted)}
+.sticky-bar .info .value{font-size:1.2rem;font-weight:800;color:var(--purple)}
+.wa-btn{background:#25D366;color:#fff;border:none;padding:12px 28px;border-radius:40px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px}
+.wa-btn:hover{transform:translateY(-1px)}
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--success);color:#fff;padding:10px 20px;border-radius:40px;z-index:9999;font-size:.7rem;animation:fadeOut 2s forwards}
+@keyframes fadeOut{0%{opacity:1}70%{opacity:1}100%{opacity:0;visibility:hidden}}
+footer{border-top:1px solid var(--border);padding:20px 24px;text-align:center;background:var(--card);font-size:.65rem;margin-bottom:70px}
+.darkmode-toggle{position:fixed;bottom:90px;right:20px;width:44px;height:44px;border-radius:50%;background:var(--purple);border:none;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+<nav>
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-icon"><img src="https://files.catbox.moe/34dics.png"/></div>
+    lapakID
+  </a>
+  <div class="nav-right">
+    <div class="saldo-card" id="saldoCard">
+      <span class="saldo-value" id="saldoAmount">C.0</span>
+    </div>
+    <a href="cart.html" class="cart-btn">
+      🛒 <span class="cart-badge" id="cartBadge">0</span>
+    </a>
+    <div class="dropdown" id="userDropdown">
+      <div class="dropdown-trigger">
+        <div class="user-avatar" id="navAvatar">A</div>
+        <span class="user-name" id="navUsername">User</span>
+        <span class="dropdown-arrow">▼</span>
+      </div>
+      <div class="dropdown-menu">
+        <a href="dashboard.html" class="dropdown-item">🏠 Dashboard</a>
+        <a href="id.html" class="dropdown-item">📦 Koleksi ID</a>
+        <a href="cart.html" class="dropdown-item">🛒 Keranjang</a>
+        <a href="topup.html" class="dropdown-item">💰 Top Up Coins</a>
+        <div class="dropdown-item logout" id="logoutBtn">🚪 Logout</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="main-content">
+  <div class="page-header">
+    <h1>Top Up Coins</h1>
+    <p>Isi saldo Coins untuk berbelanja ID premium</p>
+  </div>
+
+  <div class="topup-hero">
+    <h2>💎 Saldo Coins Kamu</h2>
+    <div class="saldo" id="heroSaldo">C.0</div>
+    <p style="font-size:.7rem;opacity:.8;margin-top:8px">Gunakan Coins untuk membeli ID premium</p>
+  </div>
+
+  <div class="packages-grid" id="packagesGrid"></div>
+</div>
+
+<div class="sticky-bar" id="stickyBar" style="display:none">
+  <div class="info">
+    <div class="label">Paket dipilih</div>
+    <div class="value" id="selectedCoins">0 Coins</div>
+    <div class="label" id="selectedPrice">Rp0</div>
+  </div>
+  <button class="wa-btn" id="waBtn">
+    <span>📱</span> Top Up via WhatsApp
+  </button>
+</div>
+
+<footer>© 2026 lapakID — Top Up Coins</footer>
+</div>
+
+<button class="darkmode-toggle" id="darkModeToggle">🌙</button>
+
+<script>
+const API_URL = '/api';
+let currentUser = null;
+let selectedPackage = null;
+
+const PACKAGES = [
+  { coins: 10000, price: 10000, bonus: 0, popular: false },
+  { coins: 25000, price: 25000, bonus: 0, popular: false },
+  { coins: 50000, price: 48000, bonus: 2000, popular: true },
+  { coins: 100000, price: 92000, bonus: 8000, popular: false },
+  { coins: 250000, price: 220000, bonus: 30000, popular: false },
+  { coins: 500000, price: 430000, bonus: 70000, popular: false }
+];
+
+async function checkAuth() {
+  const token = localStorage.getItem('lapakid_token');
+  if (!token) {
+    window.location.href = 'index.html';
+    return;
+  }
+  try {
+    const res = await fetch(`${API_URL}/profile`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentUser = data.data;
+      document.getElementById('navAvatar').innerText = currentUser.nama.charAt(0).toUpperCase();
+      document.getElementById('navUsername').innerText = currentUser.uid;
+      updateSaldo();
+      loadCartCount();
+      renderPackages();
+    } else {
+      localStorage.removeItem('lapakid_token');
+      window.location.href = 'index.html';
+    }
+  } catch(e) {
+    window.location.href = 'index.html';
+  }
+}
+
+function updateSaldo() {
+  const saldo = (currentUser.coins || 0).toLocaleString();
+  document.getElementById('saldoAmount').innerHTML = `C.${saldo}`;
+  document.getElementById('heroSaldo').innerHTML = `C.${saldo}`;
+}
+
+function loadCartCount() {
+  const cart = JSON.parse(localStorage.getItem('lapakid_cart') || '[]');
+  document.getElementById('cartBadge').innerText = cart.length;
+}
+
+function renderPackages() {
+  const grid = document.getElementById('packagesGrid');
+  grid.innerHTML = PACKAGES.map((pkg, idx) => `
+    <div class="package-card" data-idx="${idx}">
+      <div class="package-coins">${(pkg.coins + pkg.bonus).toLocaleString()} Coins</div>
+      <div class="package-price">Rp${pkg.price.toLocaleString()}</div>
+      ${pkg.bonus > 0 ? `<div class="package-bonus">+${pkg.bonus.toLocaleString()} Bonus Coins</div>` : ''}
+      <div style="font-size:.6rem;color:var(--muted);margin-top:8px">≈ Rp${(pkg.price / pkg.coins).toFixed(1)} / Coin</div>
+    </div>
+  `).join('');
+
+  document.querySelectorAll('.package-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const idx = parseInt(card.dataset.idx);
+      selectPackage(idx);
+    });
+  });
+}
+
+function selectPackage(idx) {
+  selectedPackage = PACKAGES[idx];
+  
+  // Update UI
+  document.querySelectorAll('.package-card').forEach(card => card.classList.remove('selected'));
+  document.querySelector(`.package-card[data-idx="${idx}"]`).classList.add('selected');
+  
+  // Show sticky bar
+  const totalCoins = selectedPackage.coins + selectedPackage.bonus;
+  document.getElementById('selectedCoins').innerHTML = `${totalCoins.toLocaleString()} Coins`;
+  document.getElementById('selectedPrice').innerHTML = `Rp${selectedPackage.price.toLocaleString()}`;
+  document.getElementById('stickyBar').style.display = 'flex';
+  
+  // Scroll to sticky bar
+  document.getElementById('stickyBar').scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function generateWAMessage() {
+  if (!selectedPackage) return '';
+  const totalCoins = selectedPackage.coins + selectedPackage.bonus;
+  const message = `Halo Admin lapakID,%0A%0ASaya ingin Top Up Coins:%0A%0A📦 Paket: ${totalCoins.toLocaleString()} Coins%0A💰 Harga: Rp${selectedPackage.price.toLocaleString()}%0A👤 Username: ${currentUser.uid}%0A%0AMohon diproses. Terima kasih!`;
+  return message;
+}
+
+document.getElementById('waBtn').onclick = () => {
+  if (!selectedPackage) {
+    alert('Pilih paket terlebih dahulu');
+    return;
+  }
+  const waUrl = `https://wa.me/628123456789?text=${generateWAMessage()}`;
+  window.open(waUrl, '_blank');
+  showToast('Hubungi admin untuk menyelesaikan pembayaran');
+};
+
+function showToast(msg) {
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+function logout() {
+  localStorage.removeItem('lapakid_token');
+  localStorage.removeItem('lapakid_cart');
+  window.location.href = 'index.html';
+}
+
+document.getElementById('saldoCard').onclick = () => window.location.href = 'topup.html';
+document.getElementById('logoutBtn').onclick = logout;
+
+// Dropdown
+const drop = document.getElementById('userDropdown');
+drop.addEventListener('click', (e) => { e.stopPropagation(); drop.classList.toggle('active'); });
+document.addEventListener('click', () => drop.classList.remove('active'));
+
+// Dark mode
+function initDarkMode() {
+  const btn = document.getElementById('darkModeToggle');
+  let dark = localStorage.getItem('darkMode') === 'true';
+  function apply(d) {
+    if (d) document.body.classList.add('dark-mode');
+    else document.body.classList.remove('dark-mode');
+    btn.textContent = d ? '☀️' : '🌙';
+    localStorage.setItem('darkMode', d);
+  }
+  apply(dark);
+  btn.onclick = () => { dark = !dark; apply(dark); };
+}
+
+checkAuth();
+initDarkMode();
+</script>
+</body>
+</html>
