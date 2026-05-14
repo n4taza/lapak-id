@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes"/>
+<title>Daftar | lapakID</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f9fafb;--bg2:#f2f4f7;--card:#ffffff;--border:#e4e7ec;--border2:#d0d5dd;--text:#101828;--muted:#667085;--muted2:#475467;--white:#fff;--purple:#465fff;--success:#12b76a;--danger:#f04438;--font:'Outfit',sans-serif;}
+body.dark-mode{--bg:#000000;--bg2:#0a0a0a;--card:#111111;--border:#222222;--border2:#333333;--text:#ffffff;--muted:#888888;--muted2:#aaaaaa;--white:#111111;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);transition:background 0.3s;min-height:100vh;display:flex;flex-direction:column;}
+.app-wrapper{display:flex;flex-direction:column;min-height:100vh;}
+nav{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 16px;height:60px;display:flex;align-items:center;justify-content:space-between}
+@media(min-width:768px){nav{padding:0 32px;height:68px}}
+body.dark-mode nav{background:rgba(0,0,0,.96)}
+.nav-logo{display:flex;align-items:center;gap:8px;font-size:.9rem;font-weight:800;color:var(--text);text-decoration:none}
+.nav-logo-icon{width:28px;height:28px;border-radius:8px;overflow:hidden}
+.nav-logo-icon img{width:100%;height:100%;object-fit:cover}
+.nav-right{display:flex;align-items:center;gap:12px}
+.darkmode-toggle{background:var(--bg2);border:1px solid var(--border);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem}
+.main-content{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 20px;}
+.auth-container{max-width:480px;width:100%;margin:0 auto;}
+.auth-card{background:var(--card);border:1px solid var(--border);border-radius:28px;padding:32px 28px;}
+.auth-header{text-align:center;margin-bottom:32px;}
+.auth-header h1{font-size:1.8rem;font-weight:800;color:var(--text);margin-bottom:8px;}
+.auth-header p{font-size:.8rem;color:var(--muted);}
+.form-group{margin-bottom:20px;}
+.form-group label{display:block;font-size:.7rem;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;}
+.form-group input{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:12px 16px;font-size:.85rem;color:var(--text);font-family:var(--font);outline:none;}
+.form-group input:focus{border-color:var(--purple);}
+.form-group input::placeholder{color:var(--muted);font-size:.75rem;}
+.checkbox-group{display:flex;align-items:flex-start;gap:10px;margin:20px 0;}
+.checkbox-group input{width:18px;height:18px;margin-top:2px;cursor:pointer;accent-color:var(--purple);}
+.checkbox-group label{font-size:.75rem;color:var(--muted2);line-height:1.4;cursor:pointer;}
+.checkbox-group a{color:var(--purple);text-decoration:none;font-weight:600;}
+.btn-submit{width:100%;background:var(--purple);color:#fff;border:none;border-radius:40px;padding:14px;font-size:.9rem;font-weight:700;cursor:pointer;margin-top:8px;}
+.btn-submit:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(70,95,255,.3);}
+.auth-footer{text-align:center;margin-top:24px;padding-top:20px;border-top:1px solid var(--border);font-size:.75rem;color:var(--muted);}
+.auth-footer a{color:var(--purple);text-decoration:none;font-weight:600;}
+.error-msg{background:rgba(239,68,56,.1);color:var(--danger);padding:10px 14px;border-radius:12px;font-size:.7rem;margin-bottom:20px;text-align:center;display:none;}
+.error-msg.show{display:block;}
+.success-msg{background:rgba(18,183,106,.1);color:var(--success);padding:10px 14px;border-radius:12px;font-size:.7rem;margin-bottom:20px;text-align:center;display:none;}
+.success-msg.show{display:block;}
+footer{border-top:1px solid var(--border);padding:16px 24px;text-align:center;background:var(--card);color:var(--muted);font-size:.65rem;margin-top:auto}
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+<nav>
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-icon"><img src="https://files.catbox.moe/34dics.png" alt="lapakID"/></div>
+    lapakID
+  </a>
+  <div class="nav-right">
+    <button class="darkmode-toggle" id="darkModeToggle">🌙</button>
+  </div>
+</nav>
+
+<div class="main-content">
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h1>Daftar Akun</h1>
+        <p>Buat akun untuk mulai berbelanja ID premium</p>
+      </div>
+      <div id="errorMsg" class="error-msg"></div>
+      <div id="successMsg" class="success-msg"></div>
+      <form id="signupForm">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="username" placeholder="Username" required/>
+        </div>
+        <div class="form-group">
+          <label>Nama Lengkap</label>
+          <input type="text" id="fullName" placeholder="Nama Lengkap" required/>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="email" placeholder="Email" required/>
+        </div>
+        <div class="form-group">
+          <label>WhatsApp</label>
+          <input type="text" id="phone" placeholder="Nomor WhatsApp" required/>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="password" placeholder="Password (min 6 karakter)" required/>
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" id="agreeTerms" required/>
+          <label for="agreeTerms">Saya menyetujui Syarat & Ketentuan</label>
+        </div>
+        <button type="submit" class="btn-submit">Daftar Sekarang →</button>
+      </form>
+      <div class="auth-footer">
+        Sudah punya akun? <a href="signin.html">Masuk sekarang</a>
+      </div>
+    </div>
+  </div>
+</div>
+<footer>© 2026 lapakID — Daftar Akun Baru</footer>
+</div>
+
+<script>
+const API_URL = '/api';
+
+function initDarkMode(){
+  const btn = document.getElementById('darkModeToggle');
+  let dark = localStorage.getItem('darkMode') === 'true';
+  function apply(d){
+    if(d){ document.body.classList.add('dark-mode'); btn.textContent = '☀️'; }
+    else{ document.body.classList.remove('dark-mode'); btn.textContent = '🌙'; }
+    localStorage.setItem('darkMode', d);
+  }
+  apply(dark);
+  btn.onclick = () => { dark = !dark; apply(dark); };
+}
+
+document.getElementById('signupForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const username = document.getElementById('username').value.trim();
+  const fullName = document.getElementById('fullName').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const password = document.getElementById('password').value;
+  const agreeTerms = document.getElementById('agreeTerms').checked;
+  const errorMsg = document.getElementById('errorMsg');
+  const successMsg = document.getElementById('successMsg');
+  
+  errorMsg.classList.remove('show');
+  successMsg.classList.remove('show');
+  
+  if(!username || !fullName || !email || !phone || !password){
+    errorMsg.textContent = '❌ Semua field harus diisi!';
+    errorMsg.classList.add('show');
+    return;
+  }
+  if(password.length < 6){
+    errorMsg.textContent = '❌ Password minimal 6 karakter!';
+    errorMsg.classList.add('show');
+    return;
+  }
+  if(!agreeTerms){
+    errorMsg.textContent = '❌ Anda harus menyetujui Syarat & Ketentuan!';
+    errorMsg.classList.add('show');
+    return;
+  }
+  
+  try {
+    const res = await fetch(`${API_URL}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nama: fullName, username, password, email, phone })
+    });
+    const data = await res.json();
+    
+    if(data.success){
+      localStorage.setItem('lapakid_token', data.token);
+      localStorage.setItem('lapakid_user', JSON.stringify({ coins: data.user.coins }));
+      successMsg.textContent = '✅ Pendaftaran berhasil! Mengarahkan ke dashboard...';
+      successMsg.classList.add('show');
+      setTimeout(() => {
+        window.location.href = 'dashboard.html';
+      }, 1500);
+    } else {
+      errorMsg.textContent = '❌ ' + data.message;
+      errorMsg.classList.add('show');
+    }
+  } catch(e){
+    errorMsg.textContent = '❌ Network error';
+    errorMsg.classList.add('show');
+  }
+});
+
+initDarkMode();
+</script>
+</body>
+</html>
