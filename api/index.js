@@ -5,7 +5,6 @@ const jwt = require('jsonwebtoken');
 const MONGODB_URI = 'mongodb+srv://n4taza_db:N44E8WEKlOJLZIHQ@cluster0.pdfnlfb.mongodb.net/lapakid_db?retryWrites=true&w=majority';
 const JWT_SECRET = 'lapakid_secret_key_2024';
 
-// Koneksi MongoDB cache
 let cached = global.mongoose;
 if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
@@ -25,7 +24,6 @@ async function connectDB() {
 
 // ==================== SCHEMAS ====================
 
-// User Schema (untuk semua user: user biasa, seller, admin)
 const userSchema = new mongoose.Schema({
   uid: { type: String, unique: true, required: true },
   nama: { type: String, required: true },
@@ -41,7 +39,6 @@ const userSchema = new mongoose.Schema({
   pending: { type: Number, default: 0 },
   totalPengeluaranCoins: { type: Number, default: 0 },
   role: { type: String, enum: ['admin', 'seller', 'user'], default: 'user' },
-  // Seller specific
   storeName: { type: String, default: '' },
   storeDescription: { type: String, default: '' },
   totalSales: { type: Number, default: 0 },
@@ -49,7 +46,6 @@ const userSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// Data Akun Schema (ID yang dijual)
 const dataAkunSchema = new mongoose.Schema({
   uid: { type: String, required: true, unique: true },
   password: { type: String, required: true },
@@ -65,7 +61,6 @@ const dataAkunSchema = new mongoose.Schema({
   note: { type: String, default: '' }
 });
 
-// Transaction Schema
 const transactionSchema = new mongoose.Schema({
   transactionId: { type: String, unique: true, required: true },
   buyerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -73,7 +68,6 @@ const transactionSchema = new mongoose.Schema({
   sellerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   sellerName: { type: String, default: '' },
   akunId: { type: String, required: true },
-  akunUid: { type: String, default: '' },
   tier: { type: String, enum: ['low', 'medium', 'high', 'legend'], required: true },
   amount: { type: Number, required: true },
   status: { type: String, enum: ['pending', 'success', 'failed'], default: 'success' },
@@ -99,14 +93,12 @@ async function verifyToken(token) {
   }
 }
 
-// Price mapping
 const PRICE_MAP = { low: 125000, medium: 450000, high: 850000, legend: 1350000 };
 const TIER_NAMES = { low: 'Low', medium: 'Medium', high: 'High', legend: 'Legend' };
 
 // ==================== MAIN HANDLER ====================
 
 module.exports = async (req, res) => {
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -127,7 +119,7 @@ module.exports = async (req, res) => {
       
       const existingUser = await User.findOne({ uid: username });
       if (existingUser) {
-        return res.json({ success: false, message: 'Username already exists' });
+        return res.json({ success: false, message: 'Username sudah digunakan' });
       }
       
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -152,7 +144,7 @@ module.exports = async (req, res) => {
       
       res.json({
         success: true,
-        message: 'Registration successful',
+        message: 'Pendaftaran berhasil',
         token,
         user: {
           id: newUser._id,
@@ -178,12 +170,12 @@ module.exports = async (req, res) => {
       
       const user = await User.findOne({ uid: username });
       if (!user) {
-        return res.json({ success: false, message: 'Invalid username or password' });
+        return res.json({ success: false, message: 'Username atau password salah' });
       }
       
       const validPassword = await bcrypt.compare(password, user.password);
       if (!validPassword) {
-        return res.json({ success: false, message: 'Invalid username or password' });
+        return res.json({ success: false, message: 'Username atau password salah' });
       }
       
       const token = jwt.sign(
@@ -194,7 +186,7 @@ module.exports = async (req, res) => {
       
       res.json({
         success: true,
-        message: 'Login successful',
+        message: 'Login berhasil',
         token,
         user: {
           id: user._id,
@@ -227,8 +219,8 @@ module.exports = async (req, res) => {
       const filter = { status: 'available' };
       if (tier && tier !== 'all') filter.tier = tier;
       
-      const ids = await DataAkun.find(filter).select('uid tier price description note');
-      res.json({ success: true, data: ids.map(id => ({ uid: id.uid, tier: id.tier, price: id.price, description: id.description })) });
+      const ids = await DataAkun.find(filter).select('uid tier price description');
+      res.json({ success: true, data: ids });
     } catch (error) {
       res.json({ success: false, data: [] });
     }
@@ -242,7 +234,7 @@ module.exports = async (req, res) => {
       const token = authHeader && authHeader.split(' ')[1];
       
       if (!token) {
-        return res.json({ success: false, message: 'Access token required' });
+        return res.json({ success: false, message: 'Token required' });
       }
       
       const decoded = await verifyToken(token);
@@ -267,14 +259,14 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // ==================== ADD ID (Admin/Seller) ====================
+  // ==================== ADD ID ====================
   if (path === '/api/ids/add' && req.method === 'POST') {
     try {
       const authHeader = req.headers.authorization;
       const token = authHeader && authHeader.split(' ')[1];
       
       if (!token) {
-        return res.status(401).json({ success: false, message: 'Access token required' });
+        return res.status(401).json({ success: false, message: 'Token required' });
       }
       
       const decoded = await verifyToken(token);
@@ -287,14 +279,14 @@ module.exports = async (req, res) => {
         return res.json({ success: false, message: 'Permission denied' });
       }
       
-      const { uid, password, tier, price, description, note } = req.body;
+      const { uid, password, tier, description, note } = req.body;
       
       const existing = await DataAkun.findOne({ uid });
       if (existing) {
-        return res.json({ success: false, message: 'ID already exists' });
+        return res.json({ success: false, message: 'ID sudah ada' });
       }
       
-      const finalPrice = price || PRICE_MAP[tier] || 125000;
+      const finalPrice = PRICE_MAP[tier] || 125000;
       
       const newAkun = new DataAkun({
         uid,
@@ -308,7 +300,7 @@ module.exports = async (req, res) => {
       });
       
       await newAkun.save();
-      res.json({ success: true, message: 'ID added successfully', data: newAkun });
+      res.json({ success: true, message: 'ID berhasil ditambahkan', data: newAkun });
     } catch (error) {
       console.error(error);
       res.json({ success: false, message: 'Server error' });
@@ -316,14 +308,14 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // ==================== DELETE ID (Admin/Seller) ====================
+  // ==================== DELETE ID ====================
   if (path === '/api/ids/delete' && req.method === 'DELETE') {
     try {
       const authHeader = req.headers.authorization;
       const token = authHeader && authHeader.split(' ')[1];
       
       if (!token) {
-        return res.status(401).json({ success: false, message: 'Access token required' });
+        return res.status(401).json({ success: false, message: 'Token required' });
       }
       
       const decoded = await verifyToken(token);
@@ -337,9 +329,9 @@ module.exports = async (req, res) => {
       }
       
       const { id } = req.body;
-      const result = await DataAkun.deleteOne({ _id: id });
+      await DataAkun.deleteOne({ _id: id });
       
-      res.json({ success: true, message: 'ID deleted successfully' });
+      res.json({ success: true, message: 'ID berhasil dihapus' });
     } catch (error) {
       res.json({ success: false, message: 'Server error' });
     }
@@ -353,7 +345,7 @@ module.exports = async (req, res) => {
       const token = authHeader && authHeader.split(' ')[1];
       
       if (!token) {
-        return res.status(401).json({ success: false, message: 'Access token required' });
+        return res.status(401).json({ success: false, message: 'Login required' });
       }
       
       const decoded = await verifyToken(token);
@@ -370,15 +362,14 @@ module.exports = async (req, res) => {
       
       const akun = await DataAkun.findOne({ uid: akunId, status: 'available' });
       if (!akun) {
-        return res.json({ success: false, message: 'ID not available' });
+        return res.json({ success: false, message: 'ID tidak tersedia' });
       }
       
       if (user.coins < akun.price) {
-        return res.json({ success: false, message: 'Insufficient coins' });
+        return res.json({ success: false, message: 'Saldo tidak mencukupi' });
       }
       
       const transactionId = generateTransactionId();
-      const waktuNow = new Date().toLocaleString('id-ID');
       
       const transaction = new Transaction({
         transactionId,
@@ -387,11 +378,9 @@ module.exports = async (req, res) => {
         sellerId: akun.sellerId,
         sellerName: akun.sellerName,
         akunId: akun.uid,
-        akunUid: akun.uid,
         tier: akun.tier,
         amount: akun.price,
-        status: 'success',
-        waktu: waktuNow
+        status: 'success'
       });
       
       user.coins -= akun.price;
@@ -399,7 +388,6 @@ module.exports = async (req, res) => {
       user.berhasil += 1;
       user.totalPengeluaranCoins += akun.price;
       
-      // Update seller stats
       if (akun.sellerId) {
         const seller = await User.findById(akun.sellerId);
         if (seller) {
@@ -417,7 +405,7 @@ module.exports = async (req, res) => {
       
       res.json({
         success: true,
-        message: 'Purchase successful',
+        message: 'Pembelian berhasil',
         data: {
           uid: akun.uid,
           password: akun.password,
@@ -439,7 +427,7 @@ module.exports = async (req, res) => {
       const token = authHeader && authHeader.split(' ')[1];
       
       if (!token) {
-        return res.status(401).json({ success: false, message: 'Access token required' });
+        return res.status(401).json({ success: false, message: 'Token required' });
       }
       
       const decoded = await verifyToken(token);
@@ -466,7 +454,7 @@ module.exports = async (req, res) => {
       const token = authHeader && authHeader.split(' ')[1];
       
       if (!token) {
-        return res.status(401).json({ success: false, message: 'Access token required' });
+        return res.status(401).json({ success: false, message: 'Token required' });
       }
       
       const decoded = await verifyToken(token);
@@ -493,7 +481,7 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // ==================== GET SOLD IDs (User's purchase history) ====================
+  // ==================== GET SOLD IDs (History) ====================
   if (path === '/api/sold-ids' && req.method === 'GET') {
     try {
       const authHeader = req.headers.authorization;
@@ -511,20 +499,14 @@ module.exports = async (req, res) => {
       const transactions = await Transaction.find({ buyerId: decoded.id, status: 'success' })
         .sort({ createdAt: -1 });
       
-      const soldIds = transactions.map(t => ({
-        id: t.akunId,
-        tier: t.tier,
-        price: t.amount,
-        waktu: t.waktu
-      }));
-      res.json({ success: true, data: soldIds });
+      res.json({ success: true, data: transactions });
     } catch (error) {
       res.json({ success: true, data: [] });
     }
     return;
   }
 
-  // ==================== GET STATS for homepage ====================
+  // ==================== GET STATS (Homepage) ====================
   if (path === '/api/stats' && req.method === 'GET') {
     try {
       const totalIDs = await DataAkun.countDocuments({ status: 'available' });
@@ -540,11 +522,7 @@ module.exports = async (req, res) => {
       
       res.json({
         success: true,
-        data: {
-          totalIDs,
-          totalSold,
-          tierStats
-        }
+        data: { totalIDs, totalSold, tierStats }
       });
     } catch (error) {
       res.json({ success: true, data: { totalIDs: 0, totalSold: 0, tierStats: { low: 0, medium: 0, high: 0, legend: 0 } } });
@@ -559,7 +537,7 @@ module.exports = async (req, res) => {
       const token = authHeader && authHeader.split(' ')[1];
       
       if (!token) {
-        return res.status(401).json({ success: false, message: 'Access token required' });
+        return res.status(401).json({ success: false, message: 'Token required' });
       }
       
       const decoded = await verifyToken(token);
@@ -611,14 +589,14 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // ==================== GET ALL TRANSACTIONS (Admin/Seller) ====================
+  // ==================== GET ALL TRANSACTIONS ====================
   if (path === '/api/transactions' && req.method === 'GET') {
     try {
       const authHeader = req.headers.authorization;
       const token = authHeader && authHeader.split(' ')[1];
       
       if (!token) {
-        return res.status(401).json({ success: false, message: 'Access token required' });
+        return res.status(401).json({ success: false, message: 'Token required' });
       }
       
       const decoded = await verifyToken(token);
@@ -643,14 +621,14 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // ==================== DELETE TRANSACTION (Admin only) ====================
+  // ==================== DELETE TRANSACTION ====================
   if (path === '/api/transactions/delete' && req.method === 'DELETE') {
     try {
       const authHeader = req.headers.authorization;
       const token = authHeader && authHeader.split(' ')[1];
       
       if (!token) {
-        return res.status(401).json({ success: false, message: 'Access token required' });
+        return res.status(401).json({ success: false, message: 'Token required' });
       }
       
       const decoded = await verifyToken(token);
@@ -666,64 +644,32 @@ module.exports = async (req, res) => {
       const { transactionId } = req.body;
       await Transaction.deleteOne({ transactionId });
       
-      res.json({ success: true, message: 'Transaction deleted' });
+      res.json({ success: true, message: 'Transaksi dihapus' });
     } catch (error) {
       res.json({ success: false, message: 'Server error' });
     }
     return;
   }
 
-  // ==================== GET CART (from localStorage not needed, but for sync) ====================
-  if (path === '/api/cart' && req.method === 'GET') {
-    // Cart is client-side only, but we can return user info
+  // ==================== GET USER COINS ====================
+  if (path === '/api/user/coins' && req.method === 'GET') {
     try {
       const authHeader = req.headers.authorization;
       const token = authHeader && authHeader.split(' ')[1];
       
       if (!token) {
-        return res.json({ success: false, data: [] });
+        return res.json({ success: false, coins: 0 });
       }
       
       const decoded = await verifyToken(token);
       if (!decoded) {
-        return res.json({ success: false, data: [] });
+        return res.json({ success: false, coins: 0 });
       }
       
       const user = await User.findById(decoded.id);
-      res.json({ success: true, data: { coins: user.coins } });
+      res.json({ success: true, coins: user?.coins || 0 });
     } catch (error) {
-      res.json({ success: false, data: [] });
-    }
-    return;
-  }
-
-  // ==================== ADD COINS (Admin only) ====================
-  if (path === '/api/add-coins' && req.method === 'POST') {
-    try {
-      const authHeader = req.headers.authorization;
-      const token = authHeader && authHeader.split(' ')[1];
-      
-      if (!token) {
-        return res.status(401).json({ success: false, message: 'Access token required' });
-      }
-      
-      const decoded = await verifyToken(token);
-      if (!decoded) {
-        return res.status(403).json({ success: false, message: 'Invalid token' });
-      }
-      
-      const { userId, amount } = req.body;
-      const user = await User.findById(userId);
-      if (!user) {
-        return res.json({ success: false, message: 'User not found' });
-      }
-      
-      user.coins += amount;
-      await user.save();
-      
-      res.json({ success: true, message: 'Coins added', coins: user.coins });
-    } catch (error) {
-      res.json({ success: false, message: 'Server error' });
+      res.json({ success: false, coins: 0 });
     }
     return;
   }
