@@ -25,12 +25,15 @@ async function connectDB() {
 
 // ==================== SCHEMAS ====================
 
+// User Schema (untuk semua user: user biasa, seller, admin)
 const userSchema = new mongoose.Schema({
   uid: { type: String, unique: true, required: true },
   nama: { type: String, required: true },
   fotoProfile: { type: String, default: null },
   bio: { type: String, default: '' },
   password: { type: String, required: true },
+  email: { type: String, default: '' },
+  phone: { type: String, default: '' },
   coins: { type: Number, default: 25000 },
   jumlahTransaksi: { type: Number, default: 0 },
   berhasil: { type: Number, default: 0 },
@@ -38,9 +41,15 @@ const userSchema = new mongoose.Schema({
   pending: { type: Number, default: 0 },
   totalPengeluaranCoins: { type: Number, default: 0 },
   role: { type: String, enum: ['admin', 'seller', 'user'], default: 'user' },
+  // Seller specific
+  storeName: { type: String, default: '' },
+  storeDescription: { type: String, default: '' },
+  totalSales: { type: Number, default: 0 },
+  totalRevenue: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now }
 });
 
+// Data Akun Schema (ID yang dijual)
 const dataAkunSchema = new mongoose.Schema({
   uid: { type: String, required: true, unique: true },
   password: { type: String, required: true },
@@ -48,21 +57,28 @@ const dataAkunSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   status: { type: String, enum: ['available', 'sold', 'pending'], default: 'available' },
   sellerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  sellerName: { type: String, default: '' },
   soldTo: { type: String, default: null },
   soldAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },
-  description: { type: String, default: '' }
+  description: { type: String, default: '' },
+  note: { type: String, default: '' }
 });
 
+// Transaction Schema
 const transactionSchema = new mongoose.Schema({
   transactionId: { type: String, unique: true, required: true },
   buyerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  buyerName: { type: String, default: '' },
   sellerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  akunId: { type: mongoose.Schema.Types.ObjectId, ref: 'DataAkun', required: true },
+  sellerName: { type: String, default: '' },
+  akunId: { type: String, required: true },
+  akunUid: { type: String, default: '' },
+  tier: { type: String, enum: ['low', 'medium', 'high', 'legend'], required: true },
   amount: { type: Number, required: true },
-  status: { type: String, enum: ['pending', 'success', 'failed'], default: 'pending' },
-  createdAt: { type: Date, default: Date.now },
-  completedAt: { type: Date, default: null }
+  status: { type: String, enum: ['pending', 'success', 'failed'], default: 'success' },
+  waktu: { type: String, default: () => new Date().toLocaleString('id-ID') },
+  createdAt: { type: Date, default: Date.now }
 });
 
 const User = mongoose.models.User || mongoose.model('User', userSchema);
@@ -72,7 +88,7 @@ const Transaction = mongoose.models.Transaction || mongoose.model('Transaction',
 // ==================== HELPER FUNCTIONS ====================
 
 function generateTransactionId() {
-  return 'TXN_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+  return 'TXN_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
 }
 
 async function verifyToken(token) {
@@ -82,6 +98,10 @@ async function verifyToken(token) {
     return null;
   }
 }
+
+// Price mapping
+const PRICE_MAP = { low: 125000, medium: 450000, high: 850000, legend: 1350000 };
+const TIER_NAMES = { low: 'Low', medium: 'Medium', high: 'High', legend: 'Legend' };
 
 // ==================== MAIN HANDLER ====================
 
@@ -103,7 +123,7 @@ module.exports = async (req, res) => {
   // ==================== REGISTER ====================
   if (path === '/api/register' && req.method === 'POST') {
     try {
-      const { nama, username, password, emailPhone } = req.body;
+      const { nama, username, password, email, phone } = req.body;
       
       const existingUser = await User.findOne({ uid: username });
       if (existingUser) {
@@ -116,6 +136,8 @@ module.exports = async (req, res) => {
         uid: username,
         nama: nama,
         password: hashedPassword,
+        email: email || '',
+        phone: phone || '',
         coins: 25000,
         role: 'user'
       });
@@ -137,7 +159,9 @@ module.exports = async (req, res) => {
           uid: newUser.uid,
           nama: newUser.nama,
           coins: newUser.coins,
-          role: newUser.role
+          role: newUser.role,
+          email: newUser.email,
+          phone: newUser.phone
         }
       });
     } catch (error) {
@@ -181,7 +205,12 @@ module.exports = async (req, res) => {
           coins: user.coins,
           jumlahTransaksi: user.jumlahTransaksi,
           berhasil: user.berhasil,
-          role: user.role
+          role: user.role,
+          email: user.email,
+          phone: user.phone,
+          storeName: user.storeName,
+          totalSales: user.totalSales,
+          totalRevenue: user.totalRevenue
         }
       });
     } catch (error) {
@@ -191,30 +220,126 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // ==================== GET IDs ====================
+  // ==================== GET ALL IDs ====================
   if (path === '/api/ids' && req.method === 'GET') {
     try {
       const tier = url.searchParams.get('tier');
       const filter = { status: 'available' };
-      if (tier) filter.tier = tier;
+      if (tier && tier !== 'all') filter.tier = tier;
       
-      const ids = await DataAkun.find(filter).select('uid tier price description');
-      res.json({ success: true, data: ids.map(id => id.uid) });
+      const ids = await DataAkun.find(filter).select('uid tier price description note');
+      res.json({ success: true, data: ids.map(id => ({ uid: id.uid, tier: id.tier, price: id.price, description: id.description })) });
     } catch (error) {
       res.json({ success: false, data: [] });
     }
     return;
   }
 
-  // ==================== GET DETAIL ID ====================
-  if (path.startsWith('/api/ids/') && req.method === 'GET') {
+  // ==================== GET ALL IDs (Admin/Seller) ====================
+  if (path === '/api/all-ids' && req.method === 'GET') {
     try {
-      const uid = path.split('/').pop();
-      const akun = await DataAkun.findOne({ uid, status: 'available' });
-      if (!akun) {
-        return res.json({ success: false, message: 'ID not found' });
+      const authHeader = req.headers.authorization;
+      const token = authHeader && authHeader.split(' ')[1];
+      
+      if (!token) {
+        return res.json({ success: false, message: 'Access token required' });
       }
-      res.json({ success: true, data: akun });
+      
+      const decoded = await verifyToken(token);
+      if (!decoded) {
+        return res.json({ success: false, message: 'Invalid token' });
+      }
+      
+      const user = await User.findById(decoded.id);
+      let filter = {};
+      
+      if (user.role === 'seller') {
+        filter.sellerId = user._id;
+      } else if (user.role !== 'admin') {
+        return res.json({ success: false, message: 'Permission denied' });
+      }
+      
+      const ids = await DataAkun.find(filter).sort({ createdAt: -1 });
+      res.json({ success: true, data: ids });
+    } catch (error) {
+      res.json({ success: false, data: [] });
+    }
+    return;
+  }
+
+  // ==================== ADD ID (Admin/Seller) ====================
+  if (path === '/api/ids/add' && req.method === 'POST') {
+    try {
+      const authHeader = req.headers.authorization;
+      const token = authHeader && authHeader.split(' ')[1];
+      
+      if (!token) {
+        return res.status(401).json({ success: false, message: 'Access token required' });
+      }
+      
+      const decoded = await verifyToken(token);
+      if (!decoded) {
+        return res.status(403).json({ success: false, message: 'Invalid token' });
+      }
+      
+      const user = await User.findById(decoded.id);
+      if (user.role !== 'admin' && user.role !== 'seller') {
+        return res.json({ success: false, message: 'Permission denied' });
+      }
+      
+      const { uid, password, tier, price, description, note } = req.body;
+      
+      const existing = await DataAkun.findOne({ uid });
+      if (existing) {
+        return res.json({ success: false, message: 'ID already exists' });
+      }
+      
+      const finalPrice = price || PRICE_MAP[tier] || 125000;
+      
+      const newAkun = new DataAkun({
+        uid,
+        password,
+        tier,
+        price: finalPrice,
+        description: description || '',
+        note: note || '',
+        sellerId: user.role === 'seller' ? user._id : null,
+        sellerName: user.role === 'seller' ? user.nama : ''
+      });
+      
+      await newAkun.save();
+      res.json({ success: true, message: 'ID added successfully', data: newAkun });
+    } catch (error) {
+      console.error(error);
+      res.json({ success: false, message: 'Server error' });
+    }
+    return;
+  }
+
+  // ==================== DELETE ID (Admin/Seller) ====================
+  if (path === '/api/ids/delete' && req.method === 'DELETE') {
+    try {
+      const authHeader = req.headers.authorization;
+      const token = authHeader && authHeader.split(' ')[1];
+      
+      if (!token) {
+        return res.status(401).json({ success: false, message: 'Access token required' });
+      }
+      
+      const decoded = await verifyToken(token);
+      if (!decoded) {
+        return res.status(403).json({ success: false, message: 'Invalid token' });
+      }
+      
+      const user = await User.findById(decoded.id);
+      if (user.role !== 'admin') {
+        return res.json({ success: false, message: 'Permission denied' });
+      }
+      
+      const { id } = req.body;
+      const result = await DataAkun.deleteOne({ _id: id });
+      
+      res.json({ success: true, message: 'ID deleted successfully' });
     } catch (error) {
       res.json({ success: false, message: 'Server error' });
     }
@@ -253,21 +378,36 @@ module.exports = async (req, res) => {
       }
       
       const transactionId = generateTransactionId();
+      const waktuNow = new Date().toLocaleString('id-ID');
       
       const transaction = new Transaction({
         transactionId,
         buyerId: user._id,
+        buyerName: user.nama,
         sellerId: akun.sellerId,
-        akunId: akun._id,
+        sellerName: akun.sellerName,
+        akunId: akun.uid,
+        akunUid: akun.uid,
+        tier: akun.tier,
         amount: akun.price,
         status: 'success',
-        completedAt: new Date()
+        waktu: waktuNow
       });
       
       user.coins -= akun.price;
       user.jumlahTransaksi += 1;
       user.berhasil += 1;
       user.totalPengeluaranCoins += akun.price;
+      
+      // Update seller stats
+      if (akun.sellerId) {
+        const seller = await User.findById(akun.sellerId);
+        if (seller) {
+          seller.totalSales += 1;
+          seller.totalRevenue += akun.price;
+          await seller.save();
+        }
+      }
       
       akun.status = 'sold';
       akun.soldTo = user.uid;
@@ -319,7 +459,41 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // ==================== GET SOLD IDs ====================
+  // ==================== UPDATE PROFILE ====================
+  if (path === '/api/profile' && req.method === 'PUT') {
+    try {
+      const authHeader = req.headers.authorization;
+      const token = authHeader && authHeader.split(' ')[1];
+      
+      if (!token) {
+        return res.status(401).json({ success: false, message: 'Access token required' });
+      }
+      
+      const decoded = await verifyToken(token);
+      if (!decoded) {
+        return res.status(403).json({ success: false, message: 'Invalid token' });
+      }
+      
+      const { nama, bio, fotoProfile, email, phone, newPassword } = req.body;
+      const updateData = {};
+      if (nama) updateData.nama = nama;
+      if (bio !== undefined) updateData.bio = bio;
+      if (fotoProfile) updateData.fotoProfile = fotoProfile;
+      if (email !== undefined) updateData.email = email;
+      if (phone !== undefined) updateData.phone = phone;
+      if (newPassword && newPassword.length >= 6) {
+        updateData.password = await bcrypt.hash(newPassword, 10);
+      }
+      
+      const user = await User.findByIdAndUpdate(decoded.id, updateData, { new: true }).select('-password');
+      res.json({ success: true, data: user });
+    } catch (error) {
+      res.json({ success: false, message: 'Server error' });
+    }
+    return;
+  }
+
+  // ==================== GET SOLD IDs (User's purchase history) ====================
   if (path === '/api/sold-ids' && req.method === 'GET') {
     try {
       const authHeader = req.headers.authorization;
@@ -335,10 +509,14 @@ module.exports = async (req, res) => {
       }
       
       const transactions = await Transaction.find({ buyerId: decoded.id, status: 'success' })
-        .populate('akunId')
-        .sort({ completedAt: -1 });
+        .sort({ createdAt: -1 });
       
-      const soldIds = transactions.map(t => t.akunId?.uid).filter(Boolean);
+      const soldIds = transactions.map(t => ({
+        id: t.akunId,
+        tier: t.tier,
+        price: t.amount,
+        waktu: t.waktu
+      }));
       res.json({ success: true, data: soldIds });
     } catch (error) {
       res.json({ success: true, data: [] });
@@ -346,7 +524,7 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // ==================== GET STATS ====================
+  // ==================== GET STATS for homepage ====================
   if (path === '/api/stats' && req.method === 'GET') {
     try {
       const totalIDs = await DataAkun.countDocuments({ status: 'available' });
@@ -374,8 +552,8 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // ==================== ADD ID (Admin/Seller) ====================
-  if (path === '/api/ids/add' && req.method === 'POST') {
+  // ==================== GET ADMIN STATS ====================
+  if (path === '/api/admin/stats' && req.method === 'GET') {
     try {
       const authHeader = req.headers.authorization;
       const token = authHeader && authHeader.split(' ')[1];
@@ -394,33 +572,47 @@ module.exports = async (req, res) => {
         return res.json({ success: false, message: 'Permission denied' });
       }
       
-      const { uid, password, tier, price, description } = req.body;
+      let totalId = 0, totalTerjual = 0, totalPendapatan = 0;
+      let filter = {};
       
-      const existing = await DataAkun.findOne({ uid });
-      if (existing) {
-        return res.json({ success: false, message: 'ID already exists' });
+      if (user.role === 'seller') {
+        filter.sellerId = user._id;
+        totalId = await DataAkun.countDocuments(filter);
+        const transactions = await Transaction.find({ sellerId: user._id });
+        totalTerjual = transactions.length;
+        totalPendapatan = transactions.reduce((a, b) => a + b.amount, 0);
+      } else {
+        totalId = await DataAkun.countDocuments();
+        totalTerjual = await DataAkun.countDocuments({ status: 'sold' });
+        const transactions = await Transaction.find();
+        totalPendapatan = transactions.reduce((a, b) => a + b.amount, 0);
       }
       
-      const newAkun = new DataAkun({
-        uid,
-        password,
-        tier,
-        price: parseInt(price),
-        description: description || '',
-        sellerId: user.role === 'seller' ? user._id : null
-      });
+      const todayStr = new Date().toLocaleDateString('id-ID');
+      const todayFilter = user.role === 'seller' 
+        ? { sellerId: user._id, waktu: { $regex: todayStr } }
+        : { waktu: { $regex: todayStr } };
+      const todayTransactions = await Transaction.find(todayFilter);
+      const todayPendapatan = todayTransactions.reduce((a, b) => a + b.amount, 0);
       
-      await newAkun.save();
-      res.json({ success: true, message: 'ID added successfully', data: newAkun });
+      res.json({
+        success: true,
+        data: {
+          totalId,
+          totalTerjual,
+          totalPendapatan,
+          todayPendapatan,
+          stokTersisa: totalId
+        }
+      });
     } catch (error) {
-      console.error(error);
-      res.json({ success: false, message: 'Server error' });
+      res.json({ success: false, data: null });
     }
     return;
   }
 
-  // ==================== UPDATE PROFILE ====================
-  if (path === '/api/profile' && req.method === 'PUT') {
+  // ==================== GET ALL TRANSACTIONS (Admin/Seller) ====================
+  if (path === '/api/transactions' && req.method === 'GET') {
     try {
       const authHeader = req.headers.authorization;
       const token = authHeader && authHeader.split(' ')[1];
@@ -434,14 +626,102 @@ module.exports = async (req, res) => {
         return res.status(403).json({ success: false, message: 'Invalid token' });
       }
       
-      const { nama, bio, fotoProfile } = req.body;
-      const updateData = {};
-      if (nama) updateData.nama = nama;
-      if (bio !== undefined) updateData.bio = bio;
-      if (fotoProfile) updateData.fotoProfile = fotoProfile;
+      const user = await User.findById(decoded.id);
+      let filter = {};
       
-      const user = await User.findByIdAndUpdate(decoded.id, updateData, { new: true }).select('-password');
-      res.json({ success: true, data: user });
+      if (user.role === 'seller') {
+        filter.sellerId = user._id;
+      } else if (user.role !== 'admin') {
+        return res.json({ success: false, message: 'Permission denied' });
+      }
+      
+      const transactions = await Transaction.find(filter).sort({ createdAt: -1 });
+      res.json({ success: true, data: transactions });
+    } catch (error) {
+      res.json({ success: false, data: [] });
+    }
+    return;
+  }
+
+  // ==================== DELETE TRANSACTION (Admin only) ====================
+  if (path === '/api/transactions/delete' && req.method === 'DELETE') {
+    try {
+      const authHeader = req.headers.authorization;
+      const token = authHeader && authHeader.split(' ')[1];
+      
+      if (!token) {
+        return res.status(401).json({ success: false, message: 'Access token required' });
+      }
+      
+      const decoded = await verifyToken(token);
+      if (!decoded) {
+        return res.status(403).json({ success: false, message: 'Invalid token' });
+      }
+      
+      const user = await User.findById(decoded.id);
+      if (user.role !== 'admin') {
+        return res.json({ success: false, message: 'Permission denied' });
+      }
+      
+      const { transactionId } = req.body;
+      await Transaction.deleteOne({ transactionId });
+      
+      res.json({ success: true, message: 'Transaction deleted' });
+    } catch (error) {
+      res.json({ success: false, message: 'Server error' });
+    }
+    return;
+  }
+
+  // ==================== GET CART (from localStorage not needed, but for sync) ====================
+  if (path === '/api/cart' && req.method === 'GET') {
+    // Cart is client-side only, but we can return user info
+    try {
+      const authHeader = req.headers.authorization;
+      const token = authHeader && authHeader.split(' ')[1];
+      
+      if (!token) {
+        return res.json({ success: false, data: [] });
+      }
+      
+      const decoded = await verifyToken(token);
+      if (!decoded) {
+        return res.json({ success: false, data: [] });
+      }
+      
+      const user = await User.findById(decoded.id);
+      res.json({ success: true, data: { coins: user.coins } });
+    } catch (error) {
+      res.json({ success: false, data: [] });
+    }
+    return;
+  }
+
+  // ==================== ADD COINS (Admin only) ====================
+  if (path === '/api/add-coins' && req.method === 'POST') {
+    try {
+      const authHeader = req.headers.authorization;
+      const token = authHeader && authHeader.split(' ')[1];
+      
+      if (!token) {
+        return res.status(401).json({ success: false, message: 'Access token required' });
+      }
+      
+      const decoded = await verifyToken(token);
+      if (!decoded) {
+        return res.status(403).json({ success: false, message: 'Invalid token' });
+      }
+      
+      const { userId, amount } = req.body;
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.json({ success: false, message: 'User not found' });
+      }
+      
+      user.coins += amount;
+      await user.save();
+      
+      res.json({ success: true, message: 'Coins added', coins: user.coins });
     } catch (error) {
       res.json({ success: false, message: 'Server error' });
     }
